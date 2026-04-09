@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>词汇卡片制作器</title>
+    <!-- 引入 html2canvas 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* --- 通用与布局样式 --- */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        /* --- 输入区样式 --- */
+        .input-section {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .word-inputs {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .word-group {
+            border: 1px solid #dfe6e9;
+            padding: 1.5rem;
+            border-radius: 12px;
+            background-color: #fafcfe;
+            transition: box-shadow 0.3s ease;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .word-group:focus-within {
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        textarea.input-field {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* --- 控制区样式 --- */
+        .controls {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .style-selector {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .style-selector label {
+            margin: 0 0.5rem;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        
+        .style-selector input[type="radio"] {
+            margin-right: 0.5rem;
+            transform: scale(1.2);
+        }
+
+        .btn { /* 通用按钮样式 */
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5);
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.5);
+        }
+        .download-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+
+        /* --- 输出区样式 --- */
+        .card-output-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2.5rem;
+            padding-top: 2rem;
+            min-height: 450px;
+        }
+
+        /* --- 卡片基础样式 --- */
+        .card {
+            width: 320px;
+            aspect-ratio: 3 / 4.5;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            box-sizing: border-box;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.4s ease, color 0.4s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .card .word { font-size: 2.5rem; font-weight: bold; text-align: center; margin-bottom: 0.5rem; }
+        .card .phonetic { font-size: 1.2rem; text-align: center; opacity: 0.8; margin-bottom: 1.5rem; }
+        .card .definition, .card .example { font-size: 1.1rem; line-height: 1.7; }
+        .card .definition { border-left: 3px solid; padding-left: 1rem; margin-bottom: 1.5rem; }
+        .card .example { font-style: italic; opacity: 0.9; }
+        .card .example::before { content: 'e.g.'; font-style: normal; font-weight: bold; margin-right: 0.5em; opacity: 0.7; }
+
+        /* --- 卡片主题样式 --- */
+        .theme-light { background-color: #ffffff; color: #2c3e50; }
+        .theme-light .definition { border-color: #bdc3c7; }
+        .theme-light .phonetic { color: #7f8c8d; }
+
+        .theme-dark { background-color: #0A2240; color: #D4AF37; }
+        .theme-dark .definition { border-color: rgba(212, 175, 55, 0.4); }
+
+        .theme-sepia { background-color: #f4f0e8; color: #5d4037; }
+        .theme-sepia .definition { border-color: #a1887f; }
+        .theme-sepia .phonetic { color: #8d6e63; }
+
+        .theme-mint { background-color: #e6f2f1; color: #37474f; }
+        .theme-mint .definition { border-color: #78909c; }
+        .theme-mint .phonetic { color: #546e7a; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>词汇卡片制作器</h1>
+        
+        <div class="input-section">
+            <h2>1. 输入词汇信息</h2>
+            <div id="word-inputs-container" class="word-inputs">
+                <div class="word-group">
+                    <input type="text" class="input-field word-input" placeholder="英文词汇 (必填)">
+                    <input type="text" class="input-field phonetic-input" placeholder="英音音标 /ˌfəˈnetɪk/">
+                    <textarea class="input-field definition-input" placeholder="英英释义 (definition)"></textarea>
+                    <textarea class="input-field example-input" placeholder="例句 (example sentence)"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h2>2. 选择卡片样式</h2>
+            <div class="style-selector">
+                <label><input type="radio" name="card-theme" value="theme-light" checked> 经典白底</label>
+                <label><input type="radio" name="card-theme" value="theme-dark"> 深蓝金字</label>
+                <label><input type="radio" name="card-theme" value="theme-sepia"> 复古棕黄</label>
+                <label><input type="radio" name="card-theme" value="theme-mint"> 薄荷炭黑</label>
+            </div>
+            <div class="control-buttons">
+                <button id="generate-btn" class="btn generate-btn">生成卡片</button>
+                <button id="download-btn" class="btn download-btn" disabled>下载卡片</button>
+            </div>
+        </div>
+
+        <div id="card-output-container" class="card-output-container">
+            <!-- 生成的卡片将显示在这里 -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generate-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const outputContainer = document.getElementById('card-output-container');
+            const wordInput = document.querySelector('.word-input');
+
+            // --- 生成卡片逻辑 ---
+            generateBtn.addEventListener('click', function() {
+                outputContainer.innerHTML = ''; 
+                const selectedTheme = document.querySelector('input[name="card-theme"]:checked').value;
+                const wordGroup = document.querySelector('.word-group');
+
+                const word = wordGroup.querySelector('.word-input').value.trim();
+                const phonetic = wordGroup.querySelector('.phonetic-input').value.trim();
+                const definition = wordGroup.querySelector('.definition-input').value.trim();
+                const example = wordGroup.querySelector('.example-input').value.trim();
+
+                if (word) {
+                    const card = document.createElement('div');
+                    card.className = `card ${selectedTheme}`;
+                    card.innerHTML = `
+                        <div>
+                            <div class="word">${word}</div>
+                            ${phonetic ? `<div class="phonetic">[${phonetic}]</div>` : ''}
+                        </div>
+                        <div>
+                            ${definition ? `<div class="definition">${definition.replace(/\n/g, '<br>')}</div>` : ''}
+                            ${example ? `<div class="example">${example.replace(/\n/g, '<br>')}</div>` : ''}
+                        </div>
+                    `;
+                    outputContainer.appendChild(card);
+                    downloadBtn.disabled = false; // 启用下载按钮
+                } else {
+                    outputContainer.innerHTML = '<p style="color: #7f8c8d;">请输入词汇来生成卡片。</p>';
+                    downloadBtn.disabled = true; // 禁用下载按钮
+                }
+            });
+            
+            // --- 下载卡片逻辑 ---
+            downloadBtn.addEventListener('click', function() {
+                const cardElement = document.querySelector('.card-output-container .card');
+                if (!cardElement) {
+                    alert('请先生成一张卡片！');
+                    return;
+                }
+
+                // 使用 html2canvas 截图
+                html2canvas(cardElement, {
+                    useCORS: true, // 允许跨域图片（如此处我们使用的Google字体）
+                    backgroundColor: null, // 使用元素自身的背景色
+                    scale: window.devicePixelRatio * 2 // 提高截图清晰度，2倍缩放
+                }).then(canvas => {
+                    // 创建一个临时的 a 标签用于下载
+                    const link = document.createElement('a');
+                    link.download = `${wordInput.value.trim() || 'vocab-card'}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click(); // 触发下载
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

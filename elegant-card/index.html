@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优雅卡片生成器</title>
+    <link href="https://fastly.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    <script src="https://fastly.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/svg.js@3.1.2/dist/svg.min.js"></script>
+    
+    <!-- Huiwen-mincho 字体 (CDN 加载，fallback 为 Noto Serif SC) -->
+    <style>
+        @font-face {
+            font-family: 'Huiwen-mincho';
+            src: url('https://cdn.jsdelivr.net/gh/bosswnx/huiwenmincho-improved/%E5%8C%AF%E6%96%87%E6%98%8E%E6%9C%9D%E9%AB%94.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Merriweather:wght@400;700&family=Lora:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Huiwen-mincho', 'Times New Roman', serif;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+
+        /* 卡片样式 */
+        .card-container {
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        /* 设置面板样式 */
+        .settings-panel {
+            background: white;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        
+        /* 输入和滑块样式 */
+        .settings-panel input[type="text"],
+        .settings-panel input[type="number"],
+        .settings-panel textarea,
+        .settings-panel input[type="color"],
+        .settings-panel select {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.25rem;
+            transition: border-color 0.15s ease-in-out;
+        }
+        
+        .settings-panel input[type="text"]:focus,
+        .settings-panel input[type="number"]:focus,
+        .settings-panel textarea:focus,
+        .settings-panel input[type="color"]:focus,
+        .settings-panel select:focus {
+            border-color: #4f46e5;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 卡片内容样式 */
+        .chinese-text {
+            line-height: 1.8;
+            white-space: pre-line;
+        }
+        
+        .english-text {
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        
+        .signature {
+            font-style: italic;
+        }
+
+        /* 底部签名样式 - 修改 */
+        .footer-signature {
+            font-family: 'Lora', serif;
+            opacity: 0.8;
+            letter-spacing: 1px;
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* 卡片预览容器定位修改 */
+        # card-preview {
+            position: relative; /* 确保相对定位，以便底部签名能够正确定位 */
+        }
+
+        /* 响应式布局调整 */
+        @media (max-width: 768px) {
+            .settings-panel {
+                max-height: 40vh;
+                overflow-y: auto;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        /* 加载动画 */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4f46e5;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+        
+        /* 字体预览样式 */
+        .font-preview {
+            padding: 8px;
+            margin-top: 4px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .font-preview-zh {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 主容器 -->
+    <div id="e59e26ca-1bba-4db5-815b-677831fc3e7d" class="container mx-auto px-4 py-8">
+        <h1 id="f80e6d4c-0fbb-4df4-93ba-831076c72e05" class="text-3xl font-bold text-center mb-8">优雅卡片生成器</h1>
+        
+        <!-- 主内容区 -->
+        <div id="ea1ad5fa-7782-4fe3-8070-b30cd16c5653" class="flex flex-col md:flex-row gap-8">
+            
+            <!-- 卡片预览区 -->
+            <div id="bac0bf38-bfb9-4795-aecf-3fd0ba07ee8e" class="w-full md:w-2/3">
+                <div id="card-preview-container" class="card-container flex justify-center items-center p-8 bg-gray-100 rounded-lg">
+                    <!-- 卡片预览 -->
+                    <div id="card-preview" class="aspect-[3/4] w-full max-w-md rounded-lg p-10 flex flex-col justify-between" style="background-color: #000033; color: #d4af37; font-family: 'Huiwen-mincho', serif; position: relative;">
+                        <!-- 中文内容 -->
+                        <div id="chinese-content" class="chinese-text text-xl mb-8">每个人都有俩次生命
+第一次是活给别人看的，
+第二次是活给自己的。
+第二次生命，
+常常从四十岁开始。</div>
+                        
+                        <!-- 英文内容 -->
+                        <div id="english-content" class="english-text text-sm mb-4">Everyone has two lives. The first time is to live for others, and the second time is to live for yourself. The second life often begins at the age of forty.</div>
+                        
+                        <!-- 署名 -->
+                        <div id="signature" class="signature text-right">——卡尔·荣格《红书》</div>
+                        
+                        <!-- 底部签名 - 修改位置和样式 -->
+                        <div id="footer-signature" class="footer-signature text-xs">Tanch</div>
+                    </div>
+                </div>
+                
+                <!-- 功能按钮区 -->
+                <div id="a177e101-bb0f-46d0-9ed8-ca9bba63d90c" class="flex flex-wrap justify-center gap-4 mt-6">
+                    <button id="save-png-btn" class="btn bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center gap-2">
+                        <i class="fas fa-download"></i> 保存为PNG
+                    </button>
+                    <button id="save-svg-btn" class="btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2">
+                        <i class="fas fa-file-image"></i> 保存为SVG
+                    </button>
+                    <button id="export-json-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2">
+                        <i class="fas fa-file-export"></i> 导出JSON
+                    </button>
+                    <button id="import-json-btn" class="btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2">
+                        <i class="fas fa-file-import"></i> 导入JSON
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 设置面板 -->
+            <div id="e96baca4-cc77-4a88-bb72-0a1b0bd6c4cd" class="settings-panel w-full md:w-1/3 p-6 rounded-lg">
+                <h2 id="d7d9f402-4f08-44bf-9097-a63979a120c8" class="text-xl font-semibold mb-4 pb-2 border-b">卡片设置</h2>
+                
+                <!-- 内容设置 -->
+                <div id="f1d91ade-aec3-4311-a8ee-0e4de8147975" class="mb-6">
+                    <h3 id="b9d9a06b-df34-42eb-b9dc-712bb429ccea" class="text-lg font-medium mb-2">内容设置</h3>
+                    
+                    <div id="d78ef43d-4e99-49bd-896c-c2016fc15cc6" class="mb-4">
+                        <label for="chinese-text" class="block text-sm font-medium text-gray-700 mb-1">中文文本</label>
+                        <textarea id="chinese-text" rows="5" class="w-full p-2 text-sm" placeholder="输入中文文本...">每个人都有俩次生命
+第一次是活给别人看的，
+第二次是活给自己的。
+第二次生命，
+常常从四十岁开始。</textarea>
+                    </div>
+                    
+                    <div id="d73722e1-2087-4c1f-b985-c49e437cb64d" class="mb-4">
+                        <label for="english-text" class="block text-sm font-medium text-gray-700 mb-1">英文文本</label>
+                        <textarea id="english-text" rows="4" class="w-full p-2 text-sm" placeholder="输入英文文本...">Everyone has two lives. The first time is to live for others, and the second time is to live for yourself. The second life often begins at the age of forty.</textarea>
+                    </div>
+                    
+                    <div id="c9a5ac43-cef7-4847-9ff2-87e67e0abd37" class="mb-4">
+                        <label for="signature-text" class="block text-sm font-medium text-gray-700 mb-1">署名</label>
+                        <input type="text" id="signature-text" class="w-full p-2 text-sm" placeholder="输入署名..." value="——卡尔·荣格《红书》">
+                    </div>
+                    
+                    <!-- 底部签名设置 -->
+                    <div class="mb-4">
+                        <label for="footer-signature-text" class="block text-sm font-medium text-gray-700 mb-1">底部签名</label>
+                        <input type="text" id="footer-signature-text" class="w-full p-2 text-sm" placeholder="输入底部签名..." value="Tanch">
+                    </div>
+                </div>
+                
+                <!-- 字体设置 -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-2">字体设置</h3>
+                    
+                    <div class="mb-4">
+                        <label for="chinese-font" class="block text-sm font-medium text-gray-700 mb-1">中文字体</label>
+                        <select id="chinese-font" class="w-full p-2 text-sm">
+                            <option value="'Huiwen-mincho', serif">本地字体 (Huiwen-mincho)</option>
+                            <option value="'Noto Serif SC', serif">思源宋体 (Noto Serif SC)</option>
+                            <option value="'Noto Sans SC', sans-serif">思源黑体 (Noto Sans SC)</option>
+                            <option value="'Ma Shan Zheng', cursive">马善政 (行草)</option>
+                            <option value="'ZCOOL XiaoWei', serif">站酷小薇 (宋体)</option>
+                            <option value="'ZCOOL QingKe HuangYou', cursive">站酷庆科黄油体 (创意)</option>
+                        </select>
+                        <div class="font-preview font-preview-zh mt-2">
+                            <span id="chinese-font-preview">字体预览: 思源宋体 / 思源黑体</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="english-font" class="block text-sm font-medium text-gray-700 mb-1">英文字体</label>
+                        <select id="english-font" class="w-full p-2 text-sm">
+                            <option value="'Huiwen-mincho', serif">本地字体 (Huiwen-mincho)</option>
+                            <option value="'Playfair Display', serif">Playfair Display (优雅衬线)</option>
+                            <option value="'Merriweather', serif">Merriweather (经典衬线)</option>
+                            <option value="'Lora', serif">Lora (平衡衬线)</option>
+                            <option value="'Roboto', sans-serif">Roboto (现代无衬线)</option>
+                            <option value="'Open Sans', sans-serif">Open Sans (友好无衬线)</option>
+                        </select>
+                        <div class="font-preview mt-2">
+                            <span id="english-font-preview">Font Preview: Playfair / Roboto</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 底部签名字体 -->
+                    <div class="mb-4">
+                        <label for="footer-font" class="block text-sm font-medium text-gray-700 mb-1">底部签名字体</label>
+                        <select id="footer-font" class="w-full p-2 text-sm">
+                            <option value="'Lora', serif">Lora (优雅手写风)</option>
+                            <option value="'Playfair Display', serif">Playfair Display (古典衬线)</option>
+                            <option value="'Open Sans', sans-serif">Open Sans (简约无衬线)</option>
+                            <option value="'Huiwen-mincho', serif">本地字体 (Huiwen-mincho)</option>
+                            <option value="'Ma Shan Zheng', cursive">马善政 (中文手写)</option>
+                        </select>
+                        <div class="font-preview mt-2">
+                            <span id="footer-font-preview">Tanch</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 样式设置 -->
+                <div id="e1f52e18-bca1-4941-b215-e253c218c60e" class="mb-6">
+                    <h3 id="c78421f9-af17-4f34-8555-8a2b57b66a3c" class="text-lg font-medium mb-2">样式设置</h3>
+                    
+                    <div id="f15b7692-977e-48f4-b091-61d7f62a5988" class="grid grid-cols-2 gap-4 mb-4">
+                        <div id="a8d782c2-b9db-47d8-a4d2-24559d57b7ef">
+                            <label for="chinese-font-size" class="block text-sm font-medium text-gray-700 mb-1">中文字体大小</label>
+                            <div id="a4bc4196-3bb4-49d7-8488-73a2030c6c3d" class="flex items-center">
+                                <input type="range" id="chinese-font-size" min="12" max="36" value="20" class="w-full">
+                                <span id="chinese-font-size-value" class="ml-2 text-sm">20px</span>
+                            </div>
+                        </div>
+                        
+                        <div id="f855ab15-4b58-4cc4-8e79-689d572db9b3">
+                            <label for="english-font-size" class="block text-sm font-medium text-gray-700 mb-1">英文字体大小</label>
+                            <div id="ae3ac0a0-b0fe-4d8c-95f8-3fed5b448eef" class="flex items-center">
+                                <input type="range" id="english-font-size" min="8" max="24" value="14" class="w-full">
+                                <span id="english-font-size-value" class="ml-2 text-sm">14px</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="d9d50d5c-7533-4075-8c59-8be216c03e93" class="grid grid-cols-2 gap-4 mb-4">
+                        <div id="fb355a8c-109a-4878-8a4e-82c5fcdaf81c">
+                            <label for="signature-font-size" class="block text-sm font-medium text-gray-700 mb-1">署名字体大小</label>
+                            <div id="ea68d670-af0d-4d2e-8dd8-2847c2e85cd6" class="flex items-center">
+                                <input type="range" id="signature-font-size" min="8" max="20" value="14" class="w-full">
+                                <span id="signature-font-size-value" class="ml-2 text-sm">14px</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 底部签名字体大小 -->
+                        <div>
+                            <label for="footer-font-size" class="block text-sm font-medium text-gray-700 mb-1">底部签名大小</label>
+                            <div class="flex items-center">
+                                <input type="range" id="footer-font-size" min="6" max="16" value="10" class="w-full">
+                                <span id="footer-font-size-value" class="ml-2 text-sm">10px</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div id="b9c182a4-1cd7-4941-a8df-1636ca2dcc69">
+                            <label for="card-width" class="block text-sm font-medium text-gray-700 mb-1">卡片宽度(%)</label>
+                            <div id="ee6bbc85-97e1-4ec3-b32e-373674abc5a6" class="flex items-center">
+                                <input type="range" id="card-width" min="50" max="100" value="100" class="w-full">
+                                <span id="card-width-value" class="ml-2 text-sm">100%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 底部签名不透明度 -->
+                        <div>
+                            <label for="footer-opacity" class="block text-sm font-medium text-gray-700 mb-1">底部签名不透明度</label>
+                            <div class="flex items-center">
+                                <input type="range" id="footer-opacity" min="10" max="100" value="70" class="w-full">
+                                <span id="footer-opacity-value" class="ml-2 text-sm">70%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="a6313560-0965-4595-b3ab-cd0e94a2e0d8" class="grid grid-cols-2 gap-4">
+                        <div id="f77aaa9c-e43d-4e45-8d7e-20061bb30465">
+                            <label for="text-color" class="block text-sm font-medium text-gray-700 mb-1">文字颜色</label>
+                            <div id="c9ca1601-c0d4-4f7c-a22b-8f0346744630" class="flex items-center">
+                                <input type="color" id="text-color" value="#d4af37" class="w-8 h-8 rounded">
+                                <input type="text" id="text-color-hex" value="#d4af37" class="ml-2 p-1 text-xs w-20">
+                            </div>
+                        </div>
+                        
+                        <div id="e7195bf4-cb1c-48a4-ba87-6dbcc77fd288">
+                            <label for="bg-color" class="block text-sm font-medium text-gray-700 mb-1">背景颜色</label>
+                            <div id="be6d1115-4da9-4f81-bb2c-29c80193dab6" class="flex items-center">
+                                <input type="color" id="bg-color" value="#000033" class="w-8 h-8 rounded">
+                                <input type="text" id="bg-color-hex" value="#000033" class="ml-2 p-1 text-xs w-20">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 预设模板 -->
+                <div id="a88c01c8-ecf0-4f76-8fc7-993c97523f91" class="mb-4">
+                    <h3 id="e27fbaa7-6272-475b-afbd-59a85171ae20" class="text-lg font-medium mb-2">预设模板</h3>
+                    <div id="cc6b7301-c1fb-4ebc-855e-5fdd04499125" class="flex flex-wrap gap-2">
+                        <button class="template-btn px-3 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-700" 
+                                data-bg="#000033" 
+                                data-text="#d4af37">深蓝金</button>
+                        <button class="template-btn px-3 py-1 bg-gray-900 text-white text-xs rounded hover:bg-gray-800" 
+                                data-bg="#000000" 
+                                data-text="#f5f5dc">黑米色</button>
+                        <button class="template-btn px-3 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600" 
+                                data-bg="#1a2639" 
+                                data-text="#f0e6d2">深靛蓝</button>
+                        <button class="template-btn px-3 py-1 bg-purple-900 text-white text-xs rounded hover:bg-purple-800" 
+                                data-bg="#2d1b4e" 
+                                data-text="#e6c384">皇家紫</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件导入隐藏输入 -->
+    <input type="file" id="json-file-input" accept=".json" style="display: none;">
+    
+    <!-- Toast通知 -->
+    <div id="toast" class="toast">操作成功！</div>
+    
+    <!-- 加载中动画 -->
+    <div id="loading" class="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素引用
+            const cardPreview = document.getElementById('card-preview');
+            const chineseContent = document.getElementById('chinese-content');
+            const englishContent = document.getElementById('english-content');
+            const signature = document.getElementById('signature');
+            const footerSignature = document.getElementById('footer-signature');
+
+            // 输入元素
+            const chineseText = document.getElementById('chinese-text');
+            const englishText = document.getElementById('english-text');
+            const signatureText = document.getElementById('signature-text');
+            const footerSignatureText = document.getElementById('footer-signature-text');
+
+            // 字体选择元素
+            const chineseFont = document.getElementById('chinese-font');
+            const englishFont = document.getElementById('english-font');
+            const footerFont = document.getElementById('footer-font');
+            const chineseFontPreview = document.getElementById('chinese-font-preview');
+            const englishFontPreview = document.getElementById('english-font-preview');
+            const footerFontPreview = document.getElementById('footer-font-preview');
+
+            // 样式设置元素
+            const chineseFontSize = document.getElementById('chinese-font-size');
+            const chineseFontSizeValue = document.getElementById('chinese-font-size-value');
+            const englishFontSize = document.getElementById('english-font-size');
+            const englishFontSizeValue = document.getElementById('english-font-size-value');
+            const signatureFontSize = document.getElementById('signature-font-size');
+            const signatureFontSizeValue = document.getElementById('signature-font-size-value');
+            const footerFontSize = document.getElementById('footer-font-size');
+            const footerFontSizeValue = document.getElementById('footer-font-size-value');
+            const footerOpacity = document.getElementById('footer-opacity');
+            const footerOpacityValue = document.getElementById('footer-opacity-value');
+            const cardWidth = document.getElementById('card-width');
+            const cardWidthValue = document.getElementById('card-width-value');
+            const textColor = document.getElementById('text-color');
+            const textColorHex = document.getElementById('text-color-hex');
+            const bgColor = document.getElementById('bg-color');
+            const bgColorHex = document.getElementById('bg-color-hex');
+
+            // 按钮元素
+            const savePngBtn = document.getElementById('save-png-btn');
+            const saveSvgBtn = document.getElementById('save-svg-btn');
+            const exportJsonBtn = document.getElementById('export-json-btn');
+            const importJsonBtn = document.getElementById('import-json-btn');
+            const jsonFileInput = document.getElementById('json-file-input');
+            const templateBtns = document.querySelectorAll('.template-btn');
+            
+            // 加载和通知元素
+            const loadingEl = document.getElementById('loading');
+            const toastEl = document.getElementById('toast');
+
+            // 卡片数据结构
+            let cardData = {
+                chineseText: chineseText.value,
+                englishText: englishText.value,
+                signatureText: signatureText.value,
+                footerSignatureText: footerSignatureText.value,
+                chineseFontSize: parseInt(chineseFontSize.value),
+                englishFontSize: parseInt(englishFontSize.value),
+                signatureFontSize: parseInt(signatureFontSize.value),
+                footerFontSize: parseInt(footerFontSize.value),
+                footerOpacity: parseInt(footerOpacity.value),
+                cardWidth: parseInt(cardWidth.value),
+                textColor: textColor.value,
+                bgColor: bgColor.value,
+                chineseFont: "'Huiwen-mincho', serif",
+                englishFont: "'Huiwen-mincho', serif",
+                footerFont: "'Lora', serif"
+            };
+
+            // 更新字体预览样式
+            function updateFontPreviews() {
+                chineseFontPreview.style.fontFamily = cardData.chineseFont;
+                englishFontPreview.style.fontFamily = cardData.englishFont;
+                footerFontPreview.style.fontFamily = cardData.footerFont;
+                footerFontPreview.textContent = cardData.footerSignatureText;
+            }
+
+            // 更新卡片预览
+            function updateCardPreview() {
+                // 更新内容
+                chineseContent.textContent = cardData.chineseText;
+                englishContent.textContent = cardData.englishText;
+                signature.textContent = cardData.signatureText;
+                footerSignature.textContent = cardData.footerSignatureText;
+
+                // 更新样式
+                chineseContent.style.fontSize = cardData.chineseFontSize + 'px';
+                englishContent.style.fontSize = cardData.englishFontSize + 'px';
+                signature.style.fontSize = cardData.signatureFontSize + 'px';
+                footerSignature.style.fontSize = cardData.footerFontSize + 'px';
+                footerSignature.style.opacity = cardData.footerOpacity / 100;
+                
+                // 更新字体
+                chineseContent.style.fontFamily = cardData.chineseFont;
+                englishContent.style.fontFamily = cardData.englishFont;
+                signature.style.fontFamily = cardData.chineseFont;
+                footerSignature.style.fontFamily = cardData.footerFont;
+                
+                cardPreview.style.color = cardData.textColor;
+                cardPreview.style.backgroundColor = cardData.bgColor;
+                cardPreview.style.maxWidth = cardData.cardWidth + '%';
+
+                // 更新UI输入值
+                chineseFontSizeValue.textContent = cardData.chineseFontSize + 'px';
+                englishFontSizeValue.textContent = cardData.englishFontSize + 'px';
+                signatureFontSizeValue.textContent = cardData.signatureFontSize + 'px';
+                footerFontSizeValue.textContent = cardData.footerFontSize + 'px';
+                footerOpacityValue.textContent = cardData.footerOpacity + '%';
+                cardWidthValue.textContent = cardData.cardWidth + '%';
+                textColorHex.value = cardData.textColor;
+                bgColorHex.value = cardData.bgColor;
+                
+                // 更新字体预览
+                updateFontPreviews();
+            }
+
+            // 监听内容输入变更
+            chineseText.addEventListener('input', function() {
+                cardData.chineseText = this.value;
+                updateCardPreview();
+            });
+
+            englishText.addEventListener('input', function() {
+                cardData.englishText = this.value;
+                updateCardPreview();
+            });
+
+            signatureText.addEventListener('input', function() {
+                cardData.signatureText = this.value;
+                updateCardPreview();
+            });
+            
+            footerSignatureText.addEventListener('input', function() {
+                cardData.footerSignatureText = this.value;
+                updateCardPreview();
+            });
+            
+            // 监听字体选择变更
+            chineseFont.addEventListener('change', function() {
+                cardData.chineseFont = this.value;
+                updateCardPreview();
+            });
+            
+            englishFont.addEventListener('change', function() {
+                cardData.englishFont = this.value;
+                updateCardPreview();
+            });
+            
+            footerFont.addEventListener('change', function() {
+                cardData.footerFont = this.value;
+                updateCardPreview();
+            });
+
+            // 监听样式设置变更
+            chineseFontSize.addEventListener('input', function() {
+                cardData.chineseFontSize = parseInt(this.value);
+                updateCardPreview();
+            });
+
+            englishFontSize.addEventListener('input', function() {
+                cardData.englishFontSize = parseInt(this.value);
+                updateCardPreview();
+            });
+
+            signatureFontSize.addEventListener('input', function() {
+                cardData.signatureFontSize = parseInt(this.value);
+                updateCardPreview();
+            });
+            
+            footerFontSize.addEventListener('input', function() {
+                cardData.footerFontSize = parseInt(this.value);
+                updateCardPreview();
+            });
+            
+            footerOpacity.addEventListener('input', function() {
+                cardData.footerOpacity = parseInt(this.value);
+                updateCardPreview();
+            });
+
+            cardWidth.addEventListener('input', function() {
+                cardData.cardWidth = parseInt(this.value);
+                updateCardPreview();
+            });
+
+            textColor.addEventListener('input', function() {
+                cardData.textColor = this.value;
+                textColorHex.value = this.value;
+                updateCardPreview();
+            });
+
+            textColorHex.addEventListener('input', function() {
+                if (/^#[0-9A-F]{6}$/i.test(this.value)) {
+                    cardData.textColor = this.value;
+                    textColor.value = this.value;
+                    updateCardPreview();
+                }
+            });
+
+            bgColor.addEventListener('input', function() {
+                cardData.bgColor = this.value;
+                bgColorHex.value = this.value;
+                updateCardPreview();
+            });
+
+            bgColorHex.addEventListener('input', function() {
+                if (/^#[0-9A-F]{6}$/i.test(this.value)) {
+                    cardData.bgColor = this.value;
+                    bgColor.value = this.value;
+                    updateCardPreview();
+                }
+            });
+
+            // 预设模板按钮
+            templateBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const bgValue = this.getAttribute('data-bg');
+                    const textValue = this.getAttribute('data-text');
+                    
+                    cardData.bgColor = bgValue;
+                    cardData.textColor = textValue;
+                    
+                    bgColor.value = bgValue;
+                    textColor.value = textValue;
+                    bgColorHex.value = bgValue;
+                    textColorHex.value = textValue;
+                    
+                    updateCardPreview();
+                    showToast('已应用模板');
+                });
+            });
+
+            // 保存为PNG
+            savePngBtn.addEventListener('click', function() {
+                showLoading();
+                
+                // 使用html2canvas将卡片转换为图片
+                html2canvas(cardPreview, {
+                    backgroundColor: null,
+                    scale: 2, // 提高图片质量
+                    logging: false
+                }).then(canvas => {
+                    // 将canvas转为blob并保存
+                    canvas.toBlob(function(blob) {
+                        saveAs(blob, "elegant-card.png");
+                        hideLoading();
+                        showToast('PNG保存成功');
+                    });
+                }).catch(error => {
+                    console.error('Error generating PNG:', error);
+                    hideLoading();
+                    showToast('PNG生成失败，请重试', true);
+                });
+            });
+
+            // 保存为SVG
+            saveSvgBtn.addEventListener('click', function() {
+                showLoading();
+                
+                try {
+                    // 创建SVG
+                    const svgWidth = 800;
+                    const svgHeight = 1100;
+                    const svgNS = "http://www.w3.org/2000/svg";
+                    
+                    const svg = document.createElementNS(svgNS, "svg");
+                    svg.setAttribute("xmlns", svgNS);
+                    svg.setAttribute("width", svgWidth);
+                    svg.setAttribute("height", svgHeight);
+                    svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+                    
+                    // 背景矩形
+                    const rect = document.createElementNS(svgNS, "rect");
+                    rect.setAttribute("width", "100%");
+                    rect.setAttribute("height", "100%");
+                    rect.setAttribute("fill", cardData.bgColor);
+                    svg.appendChild(rect);
+                    
+                    // 中文文本
+                    const chineseText = document.createElementNS(svgNS, "text");
+                    chineseText.setAttribute("x", "50");
+                    chineseText.setAttribute("y", "100");
+                    chineseText.setAttribute("font-family", cardData.chineseFont);
+                    chineseText.setAttribute("font-size", cardData.chineseFontSize * 2);
+                    chineseText.setAttribute("fill", cardData.textColor);
+                    
+                    // 处理多行文本
+                    const chineseLines = cardData.chineseText.split("\n");
+                    const lineHeight = cardData.chineseFontSize * 2 * 1.5;
+                    
+                    chineseLines.forEach((line, index) => {
+                        const tspan = document.createElementNS(svgNS, "tspan");
+                        tspan.setAttribute("x", "50");
+                        tspan.setAttribute("dy", index === 0 ? "0" : lineHeight);
+                        tspan.textContent = line;
+                        chineseText.appendChild(tspan);
+                    });
+                    
+                    svg.appendChild(chineseText);
+                    
+                    // 英文文本
+                    const englishText = document.createElementNS(svgNS, "text");
+                    englishText.setAttribute("x", "50");
+                    englishText.setAttribute("y", svgHeight - 150);
+                    englishText.setAttribute("font-family", cardData.englishFont);
+                    englishText.setAttribute("font-size", cardData.englishFontSize * 2);
+                    englishText.setAttribute("fill", cardData.textColor);
+                    englishText.setAttribute("width", svgWidth - 100);
+                    
+                    // 处理英文文本换行
+                    const englishWords = cardData.englishText.split(" ");
+                    let currentLine = "";
+                    const maxWidth = svgWidth - 100;
+                    const charsPerLine = Math.floor(maxWidth / (cardData.englishFontSize * 1.2));
+                    let lineCount = 0;
+                    
+                    for (let i = 0; i < englishWords.length; i++) {
+                        if ((currentLine + englishWords[i]).length > charsPerLine) {
+                            const tspan = document.createElementNS(svgNS, "tspan");
+                            tspan.setAttribute("x", "50");
+                            tspan.setAttribute("dy", lineCount === 0 ? "0" : cardData.englishFontSize * 2);
+                            tspan.textContent = currentLine.trim();
+                            englishText.appendChild(tspan);
+                            
+                            currentLine = englishWords[i] + " ";
+                            lineCount++;
+                        } else {
+                            currentLine += englishWords[i] + " ";
+                        }
+                    }
+                    
+                    if (currentLine.trim()) {
+                        const tspan = document.createElementNS(svgNS, "tspan");
+                        tspan.setAttribute("x", "50");
+                        tspan.setAttribute("dy", lineCount === 0 ? "0" : cardData.englishFontSize * 2);
+                        tspan.textContent = currentLine.trim();
+                        englishText.appendChild(tspan);
+                    }
+                    
+                    svg.appendChild(englishText);
+                    
+                    // 署名
+                    const signatureText = document.createElementNS(svgNS, "text");
+                    signatureText.setAttribute("x", svgWidth - 50);
+                    signatureText.setAttribute("y", svgHeight - 100);
+                    signatureText.setAttribute("text-anchor", "end");
+                    signatureText.setAttribute("font-family", cardData.chineseFont);
+                    signatureText.setAttribute("font-size", cardData.signatureFontSize * 2);
+                    signatureText.setAttribute("font-style", "italic");
+                    signatureText.setAttribute("fill", cardData.textColor);
+                    signatureText.textContent = cardData.signatureText;
+                    svg.appendChild(signatureText);
+                    
+                    // 底部签名 - 修改位置
+                    const footerText = document.createElementNS(svgNS, "text");
+                    footerText.setAttribute("x", svgWidth / 2); // 居中
+                    footerText.setAttribute("y", svgHeight - 30); // 靠近底部
+                    footerText.setAttribute("text-anchor", "middle"); // 文本居中
+                    footerText.setAttribute("font-family", cardData.footerFont);
+                    footerText.setAttribute("font-size", cardData.footerFontSize * 2);
+                    footerText.setAttribute("fill", cardData.textColor);
+                    footerText.setAttribute("opacity", cardData.footerOpacity / 100);
+                    footerText.textContent = cardData.footerSignatureText;
+                    svg.appendChild(footerText);
+                    
+                    // 转换为字符串
+                    const serializer = new XMLSerializer();
+                    const svgStr = serializer.serializeToString(svg);
+                    const svgBlob = new Blob([svgStr], {type: "image/svg+xml;charset=utf-8"});
+                    saveAs(svgBlob, "elegant-card.svg");
+                    
+                    hideLoading();
+                    showToast('SVG保存成功');
+                } catch (error) {
+                    console.error('Error generating SVG:', error);
+                    hideLoading();
+                    showToast('SVG生成失败，请重试', true);
+                }
+            });
+
+            // 导出JSON
+            exportJsonBtn.addEventListener('click', function() {
+                const jsonStr = JSON.stringify(cardData, null, 2);
+                const jsonBlob = new Blob([jsonStr], {type: "application/json"});
+                saveAs(jsonBlob, "card-data.json");
+                showToast('JSON导出成功');
+            });
+
+            // 导入JSON
+            importJsonBtn.addEventListener('click', function() {
+                jsonFileInput.click();
+            });
+
+            jsonFileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            // 验证导入的数据
+                            if (importedData.chineseText && importedData.englishText) {
+                                // 保留旧版本JSON的兼容性处理
+                                if (!importedData.chineseFont) {
+                                    importedData.chineseFont = "'Huiwen-mincho', serif";
+                                }
+                                if (!importedData.englishFont) {
+                                    importedData.englishFont = "'Huiwen-mincho', serif";
+                                }
+                                if (!importedData.footerSignatureText) {
+                                    importedData.footerSignatureText = "Tanch";
+                                }
+                                if (!importedData.footerFont) {
+                                    importedData.footerFont = "'Lora', serif";
+                                }
+                                if (!importedData.footerFontSize) {
+                                    importedData.footerFontSize = 10;
+                                }
+                                if (!importedData.footerOpacity) {
+                                    importedData.footerOpacity = 70;
+                                }
+                                
+                                cardData = importedData;
+                                
+                                // 更新UI输入值
+                                chineseText.value = cardData.chineseText;
+                                englishText.value = cardData.englishText;
+                                signatureText.value = cardData.signatureText;
+                                footerSignatureText.value = cardData.footerSignatureText;
+                                chineseFontSize.value = cardData.chineseFontSize;
+                                englishFontSize.value = cardData.englishFontSize;
+                                signatureFontSize.value = cardData.signatureFontSize;
+                                footerFontSize.value = cardData.footerFontSize;
+                                footerOpacity.value = cardData.footerOpacity;
+                                cardWidth.value = cardData.cardWidth;
+                                textColor.value = cardData.textColor;
+                                bgColor.value = cardData.bgColor;
+                                
+                                // 更新字体选择下拉框
+                                setSelectValue(chineseFont, cardData.chineseFont);
+                                setSelectValue(englishFont, cardData.englishFont);
+                                setSelectValue(footerFont, cardData.footerFont);
+                                
+                                updateCardPreview();
+                                showToast('JSON导入成功');
+                            } else {
+                                showToast('JSON格式无效', true);
+                            }
+                        } catch (err) {
+                            console.error('JSON解析错误:', err);
+                            showToast('JSON解析失败', true);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+                // 重置文件输入，以便可以再次选择相同的文件
+                this.value = null;
+            });
+            
+            // 辅助函数：设置下拉框选中值
+            function setSelectValue(selectElement, value) {
+                for (let i = 0; i < selectElement.options.length; i++) {
+                    if (selectElement.options[i].value === value) {
+                        selectElement.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // 辅助函数：显示加载动画
+            function showLoading() {
+                loadingEl.style.display = 'flex';
+            }
+
+            // 辅助函数：隐藏加载动画
+            function hideLoading() {
+                loadingEl.style.display = 'none';
+            }
+
+            // 辅助函数：显示Toast通知
+            function showToast(message, isError = false) {
+                toastEl.textContent = message;
+                toastEl.className = isError ? 'toast show bg-red-600' : 'toast show';
+                setTimeout(() => {
+                    toastEl.className = 'toast';
+                }, 3000);
+            }
+            
+            // 初始化预览
+            updateCardPreview();
+            updateFontPreviews();
+        });
+    </script>
+</body>
+</html>
