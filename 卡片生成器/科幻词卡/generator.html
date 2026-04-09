@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交互式引用卡片生成器</title>
+  <link href="https://fastly.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fastly.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- Huiwen-mincho 字体 (CDN 加载，fallback 为 Noto Serif SC) -->
+  <style>
+    @font-face {
+      font-family: 'Huiwen-mincho';
+      src: url('https://cdn.jsdelivr.net/gh/bosswnx/huiwenmincho-improved/%E5%8C%AF%E6%96%87%E6%98%8E%E6%9C%9D%E9%AB%94.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://fastly.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://fastly.jsdelivr.net/npm/save-svg-as-png@1.4.17/lib/saveSvgAsPng.js"></script>
+  <style>
+    :root {
+      --primary-bg: #0F172A;
+      --secondary-bg: #1E293B;
+      --accent-color: #38BDF8;
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --chinese-font: 'Huiwen-mincho', serif;
+      --english-font: 'Courier New', monospace;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--primary-bg);
+      color: var(--text-primary);
+    }
+    
+    /* 针对中文内容特别设置字体 */
+    .chinese-text {
+      font-family: var(--chinese-font);
+    }
+
+    .card-container {
+      position: relative;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .quote-card {
+      transition: all 0.3s ease;}
+
+    .settings-panel {
+      background-color: var(--secondary-bg);
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-color);
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(148, 163, 184, 0.1);}
+
+    .collapse-btn {
+      transition: transform 0.3s ease;
+    }
+
+    .color-picker {
+      -webkit-appearance: none;
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 0;}
+
+    .color-picker::-webkit-color-swatch {
+      border: none;
+      border-radius: 50%;}
+
+    input[type="range"] {
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      background-color: var(--secondary-bg);
+      border-radius: 4px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background-color: var(--accent-color);
+      border-radius: 50%;
+      cursor: pointer;}
+
+    .form-input {
+      background-color: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--text-secondary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      font-family: var(--chinese-font);
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+      outline: none;
+    }
+
+    .select-input {
+      background-color: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--text-secondary);
+      color: var(--text-primary);
+      border-radius: 6px;}
+
+    /* Animation */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    /* JSON导入区域样式 */
+    .json-import-section {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background-color: rgba(30, 41, 59, 0.5);
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    
+    .notification.success {
+      background-color: rgba(34, 197, 94, 0.9);
+    }
+    
+    .notification.error {
+      background-color: rgba(239, 68, 68, 0.9);
+    }
+    
+    .notification.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* 分割线样式 */
+    .source-divider {
+      height: 1px;
+      margin: 8px 0;
+    }
+    
+    /* 签名样式 */
+    .signature-container {
+      display: block;
+      text-align: right;
+      margin-top: 16px;
+      width: 100%;
+    }
+    
+    .signature-text {
+      font-family: 'Brush Script MT', cursive;
+      display: inline-block;
+      font-size: 22px;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 lg:p-8">
+  <div id="app" class="max-w-7xl mx-auto animate-fade-in">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-center text-white mb-2 chinese-text">交互式引用卡片生成器</h1>
+      <p class="text-center text-gray-400 chinese-text">自定义并导出你的精美引用卡片</p>
+    </header>
+    
+    <div id="notification" class="notification"></div>
+    
+    <div id="main-content" class="flex flex-col lg:flex-row gap-8">
+      <!-- Card Preview Section -->
+      <div id="preview-section" class="w-full lg:w-1/2 flex flex-col items-center">
+        <h2 class="text-xl font-semibold mb-4 chinese-text">卡片预览</h2><div id="card-container" class="card-container w-full max-w-2xl mb-6">
+          <div id="quote-card" class="quote-card p-8 rounded-lg shadow-lg" style="background-color: #000000; border: 4px solid #00FF00;">
+            <div id="quote-content" class="mb-6">
+              <p id="chinese-quote" class="text-2xl mb-4 chinese-text" style="color: #00FF00; font-family: 'Huiwen-mincho', serif;">
+                "什么是真实? 你如何定义真实? 如果你指的是触觉、嗅觉、味觉和视觉，那不过是大脑解码的电子信号。"
+              </p>
+              <p id="english-quote" class="text-sm opacity-80" style="color: #00FF00; font-family: 'Courier New', monospace;">
+                "What is real? How do you define 'real'? If you're talking about what you can feel, what you can smell, what you can taste and see, then 'real' is simply electrical signals interpreted by your brain."
+              </p>
+            </div>
+            <div id="attribution">
+              <div id="source-info">
+                <p id="character" class="text-lg font-semibold chinese-text" style="color: #00FF00; font-family: 'Huiwen-mincho', serif;">
+                  Morpheus
+                </p>
+                <hr class="source-divider" style="border: 0; background-color: #00FF00;">
+                <p id="source-detail" class="text-sm chinese-text" style="color: #00FF00; font-family: 'Huiwen-mincho', serif;">
+                  《黑客帝国》 The Matrix, 1999, 莉莉·沃卓斯基
+                </p>
+              </div>
+              <div id="signature" class="signature-container">
+                <p id="signature-text" class="signature-text" style="color: #00FF00;">Dolores</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Export Buttons -->
+        <div id="export-buttons" class="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+          <button id="export-png" class="btn-primary px-6 py-3 rounded-lg flex-1 flex items-center justify-center gap-2 chinese-text">
+            <i class="fas fa-file-image"></i> 导出 PNG
+          </button>
+          <button id="export-svg" class="btn-secondary px-6 py-3 rounded-lg flex-1 flex items-center justify-center gap-2 chinese-text">
+            <i class="fas fa-file-code"></i> 导出 SVG
+          </button>
+        </div>
+      </div><!-- Settings Panel -->
+      <div id="settings-section" class="w-full lg:w-1/2">
+        <div id="settings-header" class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold chinese-text">设置面板</h2>
+          <button id="collapse-btn" class="collapse-btn p-2 rounded-full hover:bg-gray-700">
+            <i id="collapse-icon" class="fas fa-chevron-up"></i>
+          </button>
+        </div>
+        
+        <div id="settings-panel" class="settings-panel p-6 space-y-6">
+          <!-- JSON Import Section -一键导入功能 -->
+          <div class="json-import-section space-y-4p-4 rounded-lg">
+            <h3 class="text-lg font-medium chinese-text">JSON数据导入</h3>
+            <textarea id="json-input" class="form-input w-full p-3" rows="4" placeholder='粘贴JSON数据，例如: {"quote": {"chinese": "...", "english": "..."}, ...}'></textarea>
+            <div class="flex justify-between">
+              <button id="import-json-btn" class="btn-primary px-4 py-2 rounded-lg chinese-text"><i class="fas fa-file-import mr-2"></i>一键导入
+              </button>
+              <button id="export-json-btn" class="btn-secondary px-4 py-2 rounded-lg chinese-text">
+                <i class="fas fa-file-export mr-2"></i>导出当前JSON
+              </button>
+            </div>
+          </div>
+          
+          <!-- Quote Content -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-medium chinese-text">引用内容</h3>
+            
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">中文引用</label>
+              <textarea id="chinese-quote-input" class="form-input w-full p-3 chinese-text" rows="3">什么是真实? 你如何定义真实? 如果你指的是触觉、嗅觉、味觉和视觉，那不过是大脑解码的电子信号。</textarea>
+            </div><div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">英文引用</label>
+              <textarea id="english-quote-input" class="form-input w-full p-3" rows="3">What is real? How do you define 'real'? If you're talking about what you can feel, what you can smell, what you can taste and see, then 'real' is simply electrical signals interpreted by your brain.</textarea>
+            </div>
+            <!--字体大小控制 -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300 chinese-text">中文字体大小:<span id="chinese-font-size-value">20px</span></label>
+                <input id="chinese-font-size-input" type="range" min="14" max="28" step="1" value="20">
+              </div>
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300 chinese-text">英文字体大小: <span id="english-font-size-value">14px</span></label>
+                <input id="english-font-size-input" type="range" min="10" max="20" step="1" value="14">
+              </div>
+            </div>
+          </div>
+          <!-- Attribution -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-medium chinese-text">署名信息</h3>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">角色名</label>
+              <input id="character-input" type="text" class="form-input w-full p-3" value="Morpheus">
+            </div>
+            
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">出处</label>
+              <input id="source-input" type="text" class="form-input w-full p-3 chinese-text" value="《黑客帝国》The Matrix, 1999, 莉莉·沃卓斯基">
+            </div>
+            
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">签名</label>
+              <input id="signature-input" type="text" class="form-input w-full p-3" value="Dolores">
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">签名字体大小: <span id="signature-font-size-value">22px</span></label>
+              <input id="signature-font-size-input" type="range" min="16" max="32" step="1" value="22">
+            </div>
+          </div><!-- Style Settings -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-medium chinese-text">样式设置</h3>
+
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">卡片比例</label>
+              <div class="flex gap-2">
+                <button id="aspect-horizontal" class="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                  横版 (4:3)
+                </button>
+                <button id="aspect-vertical" class="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700">
+                  竖版 (9:16)
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300 chinese-text">背景颜色</label>
+                <input id="bg-color-input" type="color" class="color-picker" value="#000000">
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300 chinese-text">边框颜色</label>
+                <input id="border-color-input" type="color" class="color-picker" value="#00FF00">
+              </div>
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300 chinese-text">文字颜色</label>
+                <input id="text-color-input" type="color" class="color-picker" value="#00FF00">
+              </div>
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-300 chinese-text">边框宽度:<span id="border-width-value">4px</span></label>
+                <input id="border-width-input" type="range" min="0" max="10" step="1" value="4">
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-300 chinese-text">英文字体</label>
+              <select id="font-family-input" class="select-input w-full p-3">
+                <option value="'Courier New', monospace">Courier New</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+                <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                <option value="'Roboto', sans-serif">Roboto</option>
+                <option value="'Open Sans', sans-serif">Open Sans</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial quote card data
+      let quoteCardData = {
+        quote: {
+          chinese: "什么是真实? 你如何定义真实? 如果你指的是触觉、嗅觉、味觉和视觉，那不过是大脑解码的电子信号。",
+          english: "What is real? How do you define 'real'? If you're talking about what you can feel, what you can smell, what you can taste and see, then 'real' is simply electrical signals interpreted by your brain."
+        },
+        attribution: {
+          character: "Morpheus",
+          source: "《黑客帝国》 The Matrix, 1999, 莉莉·沃卓斯基",
+          signature: "Dolores"
+        },
+        style: {
+          backgroundColor: "#000000",
+          borderColor: "#00FF00",
+          textColor: "#00FF00",
+          borderWidth: "4px",
+          fontFamily: "'Courier New', monospace",
+          chineseFontSize: "20px",
+          englishFontSize: "14px",
+          signatureFontSize: "22px",
+          aspectRatio: "horizontal" // 'horizontal' (16:9) or 'vertical' (9:16)
+        }
+      };
+
+      // References to elements
+      const quoteCard = document.getElementById('quote-card');
+      const cardContainer = document.getElementById('card-container');
+      const chineseQuoteElem = document.getElementById('chinese-quote');
+      const englishQuoteElem = document.getElementById('english-quote');
+      const characterElem = document.getElementById('character');
+      const sourceElem = document.getElementById('source-detail');
+      const signatureElem = document.getElementById('signature-text');
+      const dividerElem = document.querySelector('.source-divider');
+      const chineseQuoteInput = document.getElementById('chinese-quote-input');
+      const englishQuoteInput = document.getElementById('english-quote-input');
+      const characterInput = document.getElementById('character-input');
+      const sourceInput = document.getElementById('source-input');
+      const signatureInput = document.getElementById('signature-input');
+
+      const bgColorInput = document.getElementById('bg-color-input');
+      const borderColorInput = document.getElementById('border-color-input');
+      const textColorInput = document.getElementById('text-color-input');
+      const borderWidthInput = document.getElementById('border-width-input');
+      const borderWidthValue = document.getElementById('border-width-value');
+      const fontFamilyInput = document.getElementById('font-family-input');
+
+      // 新增字体大小控制
+      const chineseFontSizeInput = document.getElementById('chinese-font-size-input');
+      const chineseFontSizeValue = document.getElementById('chinese-font-size-value');
+      const englishFontSizeInput = document.getElementById('english-font-size-input');
+      const englishFontSizeValue = document.getElementById('english-font-size-value');
+      const signatureFontSizeInput = document.getElementById('signature-font-size-input');
+      const signatureFontSizeValue = document.getElementById('signature-font-size-value');
+
+      // 比例切换按钮
+      const aspectHorizontalBtn = document.getElementById('aspect-horizontal');
+      const aspectVerticalBtn = document.getElementById('aspect-vertical');
+
+      const collapseBtn = document.getElementById('collapse-btn');
+      const collapseIcon = document.getElementById('collapse-icon');
+      const settingsPanel = document.getElementById('settings-panel');
+
+      const exportPngBtn = document.getElementById('export-png');
+      const exportSvgBtn = document.getElementById('export-svg');
+      // JSON导入导出按钮
+      const jsonInput = document.getElementById('json-input');
+      const importJsonBtn = document.getElementById('import-json-btn');
+      const exportJsonBtn = document.getElementById('export-json-btn');
+
+      const notification = document.getElementById('notification');
+
+      // 显示通知的函数
+      function showNotification(message, type) {
+        notification.textContent = message;
+        notification.className = `notification ${type}`;
+        notification.classList.add('show');
+        setTimeout(() => {
+          notification.classList.remove('show');
+        }, 3000);
+      }
+
+      // 中文检测函数，用于选择合适的字体
+      function containsChinese(text) {
+        return /[\u4e00-\u9fff]/.test(text);
+      }
+
+      // Update card function
+      function updateCard() {
+        // Update text content
+        chineseQuoteElem.textContent = `"${quoteCardData.quote.chinese}"`;
+        englishQuoteElem.textContent = `"${quoteCardData.quote.english}"`;
+        characterElem.textContent = quoteCardData.attribution.character;
+        sourceElem.textContent = quoteCardData.attribution.source;
+        signatureElem.textContent = quoteCardData.attribution.signature;
+
+        // Update styles
+        quoteCard.style.backgroundColor = quoteCardData.style.backgroundColor;
+        quoteCard.style.borderColor = quoteCardData.style.borderColor;
+        quoteCard.style.borderWidth = quoteCardData.style.borderWidth;
+
+        // 更新卡片比例和容器尺寸
+        if (quoteCardData.style.aspectRatio === 'vertical') {
+          quoteCard.style.aspectRatio = '9 / 16';
+          cardContainer.style.maxWidth = '28rem'; // 竖版更窄 (448px)
+        } else {
+          quoteCard.style.aspectRatio = '4 / 3';
+          cardContainer.style.maxWidth = '42rem'; // 横版更宽 (672px)
+        }
+
+        // 更新分割线颜色
+        dividerElem.style.backgroundColor = quoteCardData.style.textColor;
+
+        // 设置中文字体和字体大小
+        chineseQuoteElem.style.color = quoteCardData.style.textColor;
+        chineseQuoteElem.style.fontFamily = 'Huiwen-mincho, serif';
+        chineseQuoteElem.style.fontSize = quoteCardData.style.chineseFontSize;
+
+        // 英文引用使用选择的字体和字体大小
+        englishQuoteElem.style.color = quoteCardData.style.textColor;
+        englishQuoteElem.style.fontFamily = quoteCardData.style.fontFamily;
+        englishQuoteElem.style.fontSize = quoteCardData.style.englishFontSize;
+
+        // 角色名和出处使用中文字体
+        characterElem.style.color = quoteCardData.style.textColor;
+        characterElem.style.fontFamily = 'Huiwen-mincho, serif';
+
+        sourceElem.style.color = quoteCardData.style.textColor;
+        sourceElem.style.fontFamily = 'Huiwen-mincho, serif';
+
+        // 单独设置签名样式，保持花体字
+        signatureElem.style.color = quoteCardData.style.textColor;
+        signatureElem.style.fontSize = quoteCardData.style.signatureFontSize;
+      }
+
+      // Event listeners for input fields
+      chineseQuoteInput.addEventListener('input', function() {
+        quoteCardData.quote.chinese = this.value;
+        updateCard();
+      });
+      
+      englishQuoteInput.addEventListener('input', function() {
+        quoteCardData.quote.english = this.value;
+        updateCard();
+      });
+      
+      characterInput.addEventListener('input', function() {
+        quoteCardData.attribution.character = this.value;
+        updateCard();
+      });
+      
+      sourceInput.addEventListener('input', function() {
+        quoteCardData.attribution.source = this.value;
+        updateCard();
+      });
+      
+      signatureInput.addEventListener('input', function() {
+        quoteCardData.attribution.signature = this.value;
+        updateCard();
+      });
+      
+      bgColorInput.addEventListener('input', function() {
+        quoteCardData.style.backgroundColor = this.value;
+        updateCard();
+      });
+      
+      borderColorInput.addEventListener('input', function() {
+        quoteCardData.style.borderColor = this.value;
+        updateCard();
+      });
+      
+      textColorInput.addEventListener('input', function() {
+        quoteCardData.style.textColor = this.value;
+        updateCard();
+      });
+      
+      borderWidthInput.addEventListener('input', function() {
+        const width = `${this.value}px`;
+        quoteCardData.style.borderWidth = width;
+        borderWidthValue.textContent = width;
+        updateCard();
+      });
+      
+      fontFamilyInput.addEventListener('change', function() {
+        quoteCardData.style.fontFamily = this.value;
+        updateCard();
+      });
+      
+      // 字体大小控制
+      chineseFontSizeInput.addEventListener('input', function() {
+        const size = `${this.value}px`;
+        quoteCardData.style.chineseFontSize = size;
+        chineseFontSizeValue.textContent = size;
+        updateCard();
+      });
+      
+      englishFontSizeInput.addEventListener('input', function() {
+        const size = `${this.value}px`;
+        quoteCardData.style.englishFontSize = size;
+        englishFontSizeValue.textContent = size;
+        updateCard();
+      });
+      
+      signatureFontSizeInput.addEventListener('input', function() {
+        const size = `${this.value}px`;
+        quoteCardData.style.signatureFontSize = size;
+        signatureFontSizeValue.textContent = size;
+        updateCard();
+      });
+
+      // 比例切换按钮
+      aspectHorizontalBtn.addEventListener('click', function() {
+        quoteCardData.style.aspectRatio = 'horizontal';
+        aspectHorizontalBtn.className = 'flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700';
+        aspectVerticalBtn.className = 'flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700';
+        updateCard();
+        showNotification('已切换到横版 (4:3)', 'success');
+      });
+
+      aspectVerticalBtn.addEventListener('click', function() {
+        quoteCardData.style.aspectRatio = 'vertical';
+        aspectVerticalBtn.className = 'flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700';
+        aspectHorizontalBtn.className = 'flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700';
+        updateCard();
+        showNotification('已切换到竖版 (9:16)', 'success');
+      });
+
+      // Collapse/Expand settings panel
+      let isPanelCollapsed = false;
+      collapseBtn.addEventListener('click', function() {
+        isPanelCollapsed = !isPanelCollapsed;
+        if (isPanelCollapsed) {
+          settingsPanel.style.maxHeight = '0';settingsPanel.style.overflow = 'hidden';settingsPanel.style.padding = '0';
+          collapseIcon.classList.remove('fa-chevron-up');
+          collapseIcon.classList.add('fa-chevron-down');
+        } else {
+          settingsPanel.style.maxHeight = '';
+          settingsPanel.style.overflow = '';
+          settingsPanel.style.padding = '1.5rem';
+          collapseIcon.classList.remove('fa-chevron-down');
+          collapseIcon.classList.add('fa-chevron-up');
+        }
+      });
+      
+      // Export as PNG
+      exportPngBtn.addEventListener('click', function() {
+        html2canvas(quoteCard).then(canvas => {
+          const link = document.createElement('a');
+          link.download = 'quote-card.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          
+          showNotification('PNG导出成功！', 'success');
+        });
+      });
+      
+      // Export as SVG
+      exportSvgBtn.addEventListener('click', function() {
+        //设置SVG中文字体
+        const chineseFontFamily = "Huiwen-mincho, serif";
+
+        // 根据当前比例设置SVG尺寸
+        let svgWidth, svgHeight;
+        if (quoteCardData.style.aspectRatio === 'vertical') {
+          svgWidth = 450;
+          svgHeight = 800; // 9:16
+        } else {
+          svgWidth = 800;
+          svgHeight = 600; // 4:3
+        }
+
+        // Creating SVG content
+        const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}">
+            <style>
+              .container {
+                fill: ${quoteCardData.style.backgroundColor};
+                stroke: ${quoteCardData.style.borderColor};
+                stroke-width: ${parseInt(quoteCardData.style.borderWidth)}px;
+              }
+              .chinese-text {
+                font-family: ${chineseFontFamily};
+                fill: ${quoteCardData.style.textColor};
+                font-size: ${parseInt(quoteCardData.style.chineseFontSize)}px;
+              }
+              .english-text {
+                font-family: ${quoteCardData.style.fontFamily};
+                fill: ${quoteCardData.style.textColor};
+                font-size: ${parseInt(quoteCardData.style.englishFontSize)}px;
+              }
+              .attribution {
+                font-family: ${chineseFontFamily};
+                fill: ${quoteCardData.style.textColor};
+              }
+              .divider {
+                stroke: ${quoteCardData.style.textColor};
+                stroke-width:1px;
+              }
+              .signature {
+                font-family: 'Brush Script MT', cursive;
+                fill: ${quoteCardData.style.textColor};
+                font-style: italic;
+                font-size: ${parseInt(quoteCardData.style.signatureFontSize)}px;
+              }
+            </style>
+            <rect class="container" x="10" y="10" width="580" height="380" rx="5" ry="5" />
+            <text class="chinese-text" x="40" y="60" width="520">
+              <tspan x="40" dy="0">"${quoteCardData.quote.chinese}"</tspan>
+            </text>
+            <text class="english-text" x="40" y="100" opacity="0.8" width="520">
+              <tspan x="40" dy="0">"${quoteCardData.quote.english}"</tspan>
+            </text>
+            <text class="attribution" x="40" y="320" font-size="18" font-weight="bold">${quoteCardData.attribution.character}</text>
+            <line class="divider" x1="40" y1="330" x2="240" y2="330" />
+            <text class="attribution" x="40" y="350" font-size="14">${quoteCardData.attribution.source}</text><text class="signature" x="520" y="370" text-anchor="end">${quoteCardData.attribution.signature}</text>
+          </svg>
+        `;
+        
+        // Create a Blob with the SVG content
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        
+        // Create a link to download the SVG file
+        const link = document.createElement('a');
+        link.download = 'quote-card.svg';
+        link.href = url;
+        link.click();
+        
+        showNotification('SVG导出成功！', 'success');
+        // Clean up the URL object
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      });// 导入JSON功能
+      importJsonBtn.addEventListener('click', function() {
+        try {
+          const jsonText = jsonInput.value.trim();
+          if (!jsonText) {
+            showNotification('请输入有效的JSON数据', 'error');
+            return;
+          }
+          
+          const importedData = JSON.parse(jsonText);
+          
+          // 验证JSON格式是否正确
+          if (importedData.quote && importedData.attribution && importedData.style) {
+            // 更新引用内容
+            chineseQuoteInput.value = importedData.quote.chinese || '';
+            englishQuoteInput.value = importedData.quote.english || '';
+            // 更新署名信息
+            characterInput.value = importedData.attribution.character || '';
+            sourceInput.value = importedData.attribution.source || '';
+            signatureInput.value = importedData.attribution.signature || '';
+            
+            // 更新样式设置
+            if (importedData.style) {
+              bgColorInput.value = importedData.style.backgroundColor || '#000000';
+              borderColorInput.value = importedData.style.borderColor || '#00FF00';
+              textColorInput.value = importedData.style.textColor || '#00FF00';
+              const borderWidth = parseInt(importedData.style.borderWidth) || 4;
+              borderWidthInput.value = borderWidth;
+              borderWidthValue.textContent = `${borderWidth}px`;
+              
+              // 更新字体大小
+              const chineseSize = parseInt(importedData.style.chineseFontSize) || 20;
+              chineseFontSizeInput.value = chineseSize;
+              chineseFontSizeValue.textContent = `${chineseSize}px`;
+              
+              const englishSize = parseInt(importedData.style.englishFontSize) || 14;
+              englishFontSizeInput.value = englishSize;
+              englishFontSizeValue.textContent = `${englishSize}px`;
+              
+              const signatureSize = parseInt(importedData.style.signatureFontSize) || 22;
+              signatureFontSizeInput.value = signatureSize;
+              signatureFontSizeValue.textContent = `${signatureSize}px`;
+              
+              // 更新字体选择
+              const fontSelect = document.getElementById('font-family-input');
+              for (let i = 0; i < fontSelect.options.length; i++) {
+                if (fontSelect.options[i].value === importedData.style.fontFamily) {
+                  fontSelect.selectedIndex = i;
+                  break;
+                }
+              }// 确保样式对象有字体大小属性
+              if (!importedData.style.chineseFontSize) importedData.style.chineseFontSize = "20px";
+              if (!importedData.style.englishFontSize) importedData.style.englishFontSize = "14px";
+              if (!importedData.style.signatureFontSize) importedData.style.signatureFontSize = "22px";
+            }
+            
+            // 更新卡片数据和显示
+            quoteCardData = importedData;
+            updateCard();
+            
+            showNotification('JSON数据导入成功！', 'success');
+          } else {
+            showNotification('JSON格式不正确，请确保包含quote、attribution和style字段', 'error');
+          }
+        } catch (error) {
+          showNotification('导入失败: ' + error.message, 'error');
+        }
+      });
+      
+      // 导出当前JSON数据
+      exportJsonBtn.addEventListener('click', function() {
+        // 将当前卡片数据转换为格式化的JSON字符串
+        const jsonString = JSON.stringify(quoteCardData, null, 2);
+        
+        // 复制到剪贴板
+        navigator.clipboard.writeText(jsonString).then(() => {
+          // 更新文本区域
+          jsonInput.value = jsonString;
+          showNotification('JSON数据已复制到剪贴板并显示在文本框中', 'success');
+        }).catch(err => {
+          // 如果剪贴板API失败，至少更新文本区域
+          jsonInput.value = jsonString;
+          showNotification('JSON数据已显示在文本框中', 'success');
+        });
+      });
+      
+      // 页面加载时初始化更新卡片
+      updateCard();
+    });
+  </script>
+</body>
+</html>
