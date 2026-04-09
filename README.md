@@ -30,9 +30,30 @@
 
 ## 使用方式
 
-所有工具都是单个 HTML 文件，双击即可在浏览器中打开使用。
+### 方式一：直接打开 HTML
 
+所有工具都是单个 HTML 文件，双击即可在浏览器中打开使用。
 无需安装任何依赖，无需服务器，无需注册账号。
+
+### 方式二：Claude Code Skill
+
+每个工具都附带 `SKILL.md`，可以作为 [Claude Code](https://claude.ai/code) 的 Skill 使用，让 AI 帮你填充内容并生成 HTML 文件。
+
+**安装方法：**
+
+将对应工具目录下的 `SKILL.md` 复制到你的 Claude Code skills 目录：
+
+```
+~/.claude/skills/elegant-card/SKILL.md
+~/.claude/skills/scifi-card/SKILL.md
+~/.claude/skills/vocab-card/SKILL.md
+```
+
+**使用方法：**
+
+在 Claude Code 中输入 `/优雅卡片`、`/科幻词卡` 或 `/英语单词卡`，然后提供你想做成卡片的内容，Claude 会自动生成 HTML 文件。
+
+> **注意：** Skill 中的模板路径需要根据你的实际存放位置修改 `SKILL.md` 中的路径引用。
 
 ## 技术栈
 

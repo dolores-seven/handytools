@@ -2,7 +2,7 @@
 
 生成精美的双语（中英）金句/引言卡片。
 
-**直接打开 [index.html](index.html) 即可使用。**
+**直接打开 [index.html](index.html) 即可使用，也可作为 [Claude Code](https://claude.ai/code) Skill 使用。**
 
 ## 功能
 
@@ -15,10 +15,18 @@
 
 ## 使用方式
 
+### 直接打开 HTML
+
 1. 打开 `index.html`
 2. 在右侧设置面板编辑内容（中文引言、英文翻译、署名等）
 3. 调整字体、配色、大小
 4. 点击「保存为 PNG」或「保存为 SVG」导出
+
+### 作为 Claude Code Skill
+
+1. 将本目录下的 `SKILL.md` 复制到 `~/.claude/skills/elegant-card/SKILL.md`
+2. 修改 `SKILL.md` 中的模板路径为你实际的 `index.html` 存放位置
+3. 在 Claude Code 中输入 `/优雅卡片`，提供引言内容，Claude 会自动生成 HTML 文件
 
 ## 字体说明
 

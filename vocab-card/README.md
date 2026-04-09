@@ -2,7 +2,7 @@
 
 生成精美的英语单词学习卡片。
 
-**直接打开 [index.html](index.html) 即可使用。**
+**直接打开 [index.html](index.html) 即可使用，也可作为 [Claude Code](https://claude.ai/code) Skill 使用。**
 
 ## 功能
 
@@ -13,11 +13,19 @@
 
 ## 使用方式
 
+### 直接打开 HTML
+
 1. 打开 `index.html`
 2. 填写单词信息（单词为必填，其余可选）
 3. 选择喜欢的卡片主题
 4. 点击「生成卡片」预览效果
 5. 点击「下载卡片」保存为 PNG
+
+### 作为 Claude Code Skill
+
+1. 将本目录下的 `SKILL.md` 复制到 `~/.claude/skills/vocab-card/SKILL.md`
+2. 修改 `SKILL.md` 中的模板路径为你实际的 `index.html` 存放位置
+3. 在 Claude Code 中输入 `/英语单词卡`，提供单词列表，Claude 会自动生成 HTML 文件
 
 ## 卡片主题
 
