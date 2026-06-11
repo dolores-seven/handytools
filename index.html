@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Carbonfolk · 碳硅漫游指南</title>
+    <meta
+      name="description"
+      content="给 AI 时代碳基居民的漫游指南：测试、课程与提示词工具。"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app" id="app">
+      <section class="screen home is-active" id="homeScreen">
+        <header class="homeHero">
+          <img class="homeLogo" src="./assets/mini-program/logo-towel-144.png" alt="" />
+          <h1>碳硅漫游指南</h1>
+          <div class="brandDomain">carbonfolk.cn</div>
+          <p>给 AI 时代的碳基一族：请抓好扶手，带好指南。</p>
+        </header>
+
+        <section class="homeSection entrySection">
+          <div class="sectionTitle">
+            <h2>测试</h2>
+            <span>先从一个问题开始</span>
+          </div>
+
+          <button class="testCard" id="openDetailBtn" type="button">
+            <img src="./assets/hero-crossroads.png" alt="" />
+            <span class="testCardBody">
+              <span class="testTag">高中生 · 未来选路</span>
+              <strong>热爱与谋生怎么选？</strong>
+              <span class="testDesc">AI时代，人们的职业入口和能力结构都会发生巨变，我们应该怎么思考热爱和谋生的关系呢？测测你更适合哪种路径。</span>
+            </span>
+          </button>
+        </section>
+
+        <section class="homeSection entrySection">
+          <div class="sectionTitle">
+            <h2>课程</h2>
+            <span>免费学习资源</span>
+          </div>
+
+          <button class="courseFeatureCard" id="openCourseBtn" type="button">
+            <span class="courseFeatureMeta">MIT 人工智能之日</span>
+            <strong>DAY OF AI</strong>
+            <span>MIT RAISE 做给中小学生的免费 AI 素养课程，从动手活动进入 AI 如何影响生活。</span>
+            <span class="tagRow">
+              <em>免费</em>
+              <em>MIT RAISE</em>
+              <em>K-12 AI 素养</em>
+            </span>
+          </button>
+        </section>
+
+        <section class="homeSection entrySection">
+          <div class="sectionTitle">
+            <h2>提示词工具箱</h2>
+            <span>按场景或书籍进入</span>
+          </div>
+
+          <div class="promptEntryGrid" aria-label="提示词入口">
+            <button class="promptEntryCard" id="openPromptSceneBtn" type="button">
+              <strong>按场景找提示词</strong>
+              <span>先看孩子现在要解决什么，再进入具体提示词。</span>
+              <em>5 个场景</em>
+            </button>
+            <button class="promptEntryCard" id="openPromptBookBtn" type="button">
+              <strong>按书籍找提示词</strong>
+              <span>同一本书的一整套工具放在一起，方便连续使用。</span>
+              <em>3 本书</em>
+            </button>
+          </div>
+        </section>
+
+        <section class="homeSection entrySection">
+          <div class="sectionTitle">
+            <h2>工具</h2>
+            <span>慢慢装进背包</span>
+          </div>
+
+          <div class="toolGrid" aria-label="工具列表">
+            <article class="toolCard">
+              <span class="toolMark">01</span>
+              <strong>亲子沟通翻译器</strong>
+              <span>把大人和小孩的两套语言，翻成彼此能听懂的话。</span>
+              <span class="aiRelation">AI 时代关系：技术焦虑常常会伪装成亲子冲突。</span>
+              <em>筹备中</em>
+            </article>
+            <article class="toolCard">
+              <span class="toolMark">02</span>
+              <strong>AI 使用自检卡</strong>
+              <span>看看你是在使用 AI，还是正在被 AI 悄悄安排。</span>
+              <span class="aiRelation">AI 时代关系：学会判断工具，也是在训练自己的判断力。</span>
+              <em>筹备中</em>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section class="screen intro" id="introScreen">
+        <header class="pageTop">
+          <button class="textBtn" id="detailHomeBtn" type="button">首页</button>
+          <span>热爱与谋生怎么选？</span>
+          <div aria-hidden="true"></div>
+        </header>
+        <div class="hero">
+          <img src="./assets/hero-crossroads.png" alt="" />
+          <div class="heroShade"></div>
+          <div class="heroCopy">
+            <p class="kicker">高中生未来选路测试</p>
+            <h1>你更适合怎样安排热爱与谋生？</h1>
+            <p>
+              不是替你决定未来，而是帮你看清自己更倾向用哪一种方式接近未来。
+            </p>
+          </div>
+        </div>
+
+        <div class="introPanel">
+          <div class="metricRow" aria-label="测试信息">
+            <div>
+              <strong>10</strong>
+              <span>道情境题</span>
+            </div>
+            <div>
+              <strong>5</strong>
+              <span>种路径</span>
+            </div>
+            <div>
+              <strong>3</strong>
+              <span>分钟完成</span>
+            </div>
+          </div>
+          <p class="note">
+            每题选一个最像你的答案。别想太久，第一反应通常更诚实。
+          </p>
+          <div class="introActions">
+            <button class="primaryBtn" id="startBtn" type="button">开始测试</button>
+            <button class="secondaryBtn" id="shareIntroBtn" type="button">分享这个测试</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen course" id="courseScreen">
+        <header class="pageTop">
+          <button class="textBtn" id="courseHomeBtn" type="button">首页</button>
+          <span id="courseNavTitle">课程</span>
+          <div aria-hidden="true"></div>
+        </header>
+        <div id="courseContent"></div>
+      </section>
+
+      <section class="screen prompt" id="promptScreen">
+        <header class="pageTop">
+          <button class="textBtn" id="promptHomeBtn" type="button">首页</button>
+          <span id="promptNavTitle">提示词工具箱</span>
+          <div aria-hidden="true"></div>
+        </header>
+        <div id="promptContent"></div>
+      </section>
+
+      <section class="screen quiz" id="quizScreen" aria-live="polite">
+        <header class="pageTop">
+          <button class="textBtn" id="quizHomeBtn" type="button">首页</button>
+          <span id="quizTitle">热爱与谋生怎么选？</span>
+          <div aria-hidden="true"></div>
+        </header>
+        <header class="quizTop">
+          <button class="iconBtn" id="backBtn" type="button" aria-label="返回上一题">‹</button>
+          <div class="progressWrap">
+            <div class="progressMeta">
+              <span id="progressText">1 / 10</span>
+              <span id="dimensionText">自我认知</span>
+            </div>
+            <div class="progressBar" aria-hidden="true">
+              <span id="progressFill"></span>
+            </div>
+          </div>
+          <button class="textBtn" id="resetBtn" type="button">重来</button>
+        </header>
+
+        <article class="questionPanel">
+          <p class="questionIndex" id="questionIndex">Question 01</p>
+          <h2 id="questionText"></h2>
+          <div class="options" id="options"></div>
+        </article>
+      </section>
+
+      <section class="screen result" id="resultScreen">
+        <header class="pageTop resultTop">
+          <button class="textBtn" id="resultHomeBtn" type="button">首页</button>
+          <span>测试结果</span>
+          <div aria-hidden="true"></div>
+        </header>
+        <div class="resultHero">
+          <p class="kicker" id="resultMeta">你的结果标签</p>
+          <h2 id="resultTitle"></h2>
+          <p id="resultSubtitle"></p>
+        </div>
+
+        <div class="scoreBoard" id="scoreBoard"></div>
+
+        <section class="resultSummary">
+          <div>
+            <h3>你的当前状态</h3>
+            <p id="resultStrength"></p>
+          </div>
+          <div>
+            <h3>需要留意的偏差</h3>
+            <p id="resultRisk"></p>
+          </div>
+          <div>
+            <h3>下一步建议</h3>
+            <p id="resultAction"></p>
+          </div>
+        </section>
+
+        <div class="extensionGroup" aria-label="延伸说明">
+          <section class="knowledgeBlock">
+            <h3>这套测试想说的</h3>
+            <p>
+              这套测试参考 George Appling 的「收入-热爱关系」路径模型。AI 时代会改变职业入口、创作门槛和能力结构，“追随热爱”不再只是情绪问题，而是要同时判断技能、收入、风险、时机和长期学习节奏。
+            </p>
+          </section>
+
+          <section class="linkBlock">
+            <div>
+              <h3>想看五条路径的完整解释？</h3>
+              <p>原文有更完整的背景和路径拆解，适合测完后慢慢看。</p>
+            </div>
+            <a href="https://mp.weixin.qq.com/s/jqGQGiWZosJv3KVau_B_Hg" target="_blank" rel="noreferrer">去看原文</a>
+          </section>
+        </div>
+
+        <div class="resultActions">
+          <button class="secondaryBtn" id="retakeBtn" type="button">再测一次</button>
+          <button class="primaryBtn" id="shareResultBtn" type="button">分享结果</button>
+        </div>
+      </section>
+    </main>
+
+    <div class="shareSheet" id="shareSheet" aria-hidden="true">
+      <div class="shareSheetPanel" role="dialog" aria-modal="true" aria-labelledby="shareSheetTitle">
+        <button class="shareClose" id="shareCloseBtn" type="button" aria-label="关闭分享卡片">×</button>
+        <section class="sharePreview" aria-label="分享预览">
+          <p class="kicker">碳硅漫游指南 · 热爱与谋生测试</p>
+          <h2 id="shareSheetTitle"></h2>
+          <p id="shareSheetDesc"></p>
+          <span>AI 时代，重新设计热爱、收入和能力的关系。</span>
+        </section>
+        <div class="shareSheetActions">
+          <button class="primaryBtn" id="nativeShareBtn" type="button">打开系统分享</button>
+          <button class="secondaryBtn" id="copyShareBtn" type="button">复制结果和链接</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./script.js?v=4"></script>
+  </body>
+</html>
